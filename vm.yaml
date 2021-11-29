@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: wavefront-cloudinit
+    namespace: demo1
+data:
+  hostname: wavefront-telegraf-agent
+  password: changeme
+  public-keys: ssh-rsa [[RSA key]] nverma@ubuntu
+  user-data: [[BASE64 of cloud-init.yaml]]
+---
+apiVersion: vmoperator.vmware.com/v1alpha1
+kind: VirtualMachine
+metadata:
+  labels:
+    vm-selector: wavefront-telegraf-agent
+  name: wavefront-telegraf-agent
+  namespace: demo1
+spec:
+  imageName: ubuntu-20-1633387172196
+  className: best-effort-xsmall
+  powerState: poweredOn
+  storageClass: tanzu
+  advancedOptions:
+    defaultVolumeProvisioningOptions:
+      thinProvisioned: true
+  networkInterfaces:
+  - networkType: vsphere-distributed
+    networkName: workload0-vds-pg
+  readinessProbe:
+    tcpSocket:
+      port: 22
+  vmMetadata:
+    configMapName: wavefront-cloudinit
+    transport: OvfEnv
+---
+apiVersion: vmoperator.vmware.com/v1alpha1
+kind: VirtualMachineService
+metadata:
+  name: wavefront-telegraf-vmservices
+  namespace: demo1
+spec:
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 22
+  selector:
+    vm-selector: wavefront-telegraf-agent
+  type: LoadBalancer
