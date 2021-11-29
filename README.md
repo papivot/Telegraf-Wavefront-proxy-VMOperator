@@ -1,0 +1,1 @@
+# telegraf-wavefront-using-vmoperator
